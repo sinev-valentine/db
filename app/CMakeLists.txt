@@ -12,6 +12,5 @@ include_directories(
 
 file(GLOB SRC ./*.cpp)
 file(GLOB HPP ./*.hpp)
-
 add_executable(${PROJECT_NAME} ${SRC} ${HPP} )
 target_link_libraries(${PROJECT_NAME} srv fc_light)
