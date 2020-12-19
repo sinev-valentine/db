@@ -1,78 +1,108 @@
-#ifndef ASIO_CMD_SINGLETON_HPP
-#define ASIO_CMD_SINGLETON_HPP
+#ifndef APP_CMD_SINGLETON_HPP
+#define APP_CMD_SINGLETON_HPP
 
 #include <iostream>
 #include <boost/hana.hpp>
 #include <boost/hana/range.hpp>
 #include <boost/hana/for_each.hpp>
 #include <boost/hana/size.hpp>
-#include "trace.hpp"
+#include "json.hpp"
 #include "srv.hpp"
 
-namespace asio_app{
+namespace app {
+struct table {
+    std::string key;
+    std::string value;
+    table(const std::string& k, const std::string& v): key(k), value(v){}
+};
+
+struct field {
+    std::string key;
+    field(const std::string& k): key(k){};
+};
+}
+BOOST_FUSION_ADAPT_STRUCT( app::table, key, value);
+BOOST_FUSION_ADAPT_STRUCT( app::field, key);
+
+namespace app{
 
 namespace hana=boost::hana;
 
 enum struct cmd_list_te{
     unknown=0,
-    xml_sign,
+    insert_,
+    update_,
+    delete_,
+    get_,
     last
 };
 
-struct response_t {
-    fc_light::variant content;
-    srv::code_te http;
-};
-
-struct params_t {
-    std::vector<char> raw_xml;
-};
-
-// base abstraction class of api-commands handlerls
+using api_cmd_result = std::pair<std::string, srv::code_te>;
 struct cmd_handler_base {
     cmd_handler_base(){};
     virtual ~cmd_handler_base(){};
-    virtual fc_light::variant operator()(const fc_light::variant&) const = 0;
+    virtual api_cmd_result operator()(const std::string&) const = 0;
 };
 
-// handler for not implemented api-commands
 template<cmd_list_te T>
 struct cmd_handler : cmd_handler_base {
     virtual ~cmd_handler(){};
-    virtual fc_light::variant operator()(const fc_light::variant&) const override{
-        response_t response;
-        response.http = srv::code_te::server_error;
-        response.content = fc_light::variant("command is not implemented");
-        return fc_light::variant(response);
+    virtual api_cmd_result operator()(const std::string&) const override{
+        return std::make_pair("command is not implemented", srv::code_te::server_error);
     };
 };
 
-//handler of api-command sign
 template<>
-struct cmd_handler<cmd_list_te::xml_sign> : cmd_handler_base {
-    struct content_t{
-        std::vector<char> raw_signed_xml;
-    };
+struct cmd_handler<cmd_list_te::insert_> : cmd_handler_base {
     virtual ~cmd_handler(){};
-    virtual fc_light::variant operator()(const fc_light::variant& variant) const override{
-        response_t response;
-        params_t params;
-        content_t content;
+    virtual api_cmd_result operator()(const std::string& json) const override{
         try{
-            params =variant.as<params_t>();
-            response.content = fc_light::variant(content);
-            response.http = srv::code_te::ok;
+            auto rec = from_json<table>(json);
+            std::cout << rec.key <<", " << rec.value << std::endl;
         }
-        catch(fc_light::exception& exc)
-        {
-            // send desc of the exception
-            auto msg = asio_app::exc_handler(exc);
-            std::cout << msg << std::endl;
+        catch(std::exception& exc){
+            return std::make_pair("json parse error", srv::code_te::invalid_json);
+        }
+    };
+};
 
-            response.content = asio_app::exc_handler_variant(exc);
-            response.http = srv::code_te::server_error;
+template<>
+struct cmd_handler<cmd_list_te::update_> : cmd_handler_base {
+    virtual ~cmd_handler(){};
+    virtual api_cmd_result operator()(const std::string& json) const override{
+        try{
+            auto rec = from_json<table>(json);
+            std::cout << rec.key <<", " << rec.value << std::endl;
         }
-        return fc_light::variant(response);
+        catch(std::exception& exc){
+            return std::make_pair("json parse error", srv::code_te::invalid_json);
+        }
+    };
+};
+template<>
+struct cmd_handler<cmd_list_te::delete_> : cmd_handler_base {
+    virtual ~cmd_handler(){};
+    virtual api_cmd_result operator()(const std::string& json) const override{
+        try{
+            auto param = from_json<field>(json);
+            std::cout << param.key << std::endl;
+        }
+        catch(std::exception& exc){
+            return std::make_pair("json parse error", srv::code_te::invalid_json);
+        }
+    };
+};
+template<>
+struct cmd_handler<cmd_list_te::get_> : cmd_handler_base {
+    virtual ~cmd_handler(){};
+    virtual api_cmd_result operator()(const std::string& json) const override{
+        try{
+            auto param = from_json<field>(json);
+            std::cout << param.key << std::endl;
+        }
+        catch(std::exception& exc){
+            return std::make_pair("json parse error", srv::code_te::invalid_json);
+        }
     };
 };
 
@@ -92,10 +122,4 @@ constexpr auto cmd_static_list =
                 hana::int_c<static_cast<int>(cmd_list_te::last)>);
 }
 
-
-FC_LIGHT_REFLECT(asio_app::response_t, (content)(http))
-FC_LIGHT_REFLECT_ENUM(asio_app::cmd_list_te,(unknown)(xml_sign)(last))
-FC_LIGHT_REFLECT(asio_app::params_t, (raw_xml))
-FC_LIGHT_REFLECT(asio_app::cmd_handler<asio_app::cmd_list_te::xml_sign>::content_t, (raw_signed_xml))
-
-#endif //ASIO_CMD_SINGLETON_HPP
+#endif //APP_CMD_SINGLETON_HPP

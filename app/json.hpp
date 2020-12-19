@@ -8,14 +8,7 @@
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/mpl/range_c.hpp>
 
-struct A {
-    std::string key;
-    std::string value;
-};
-
-BOOST_FUSION_ADAPT_STRUCT( A, key, value);
-
-namespace db_lib {
+namespace app {
 
 namespace mpl=boost::mpl;
 using json = nlohmann::json;
@@ -32,14 +25,6 @@ struct from_fusion{
     }
 };
 
-template<typename T>
-std::string to_json(T const& v){
-    json j;
-    typedef mpl::range_c<unsigned, 0, boost::fusion::result_of::size<T>::value > range;
-    boost::fusion::for_each(range(), from_fusion<T>(v, j));
-    return j.dump();
-}
-
 template <typename T>
 struct to_fusion{
     to_fusion(T& seq, json& j):seq_(seq), res_(j){}
@@ -52,8 +37,16 @@ struct to_fusion{
     }
 };
 
+template<typename T>
+std::string to_json(T const& v){
+    json j;
+    typedef mpl::range_c<unsigned, 0, boost::fusion::result_of::size<T>::value > range;
+    boost::fusion::for_each(range(), from_fusion<T>(v, j));
+    return j.dump();
+}
+
 template <typename T>
-T from_json(std::string& json_str){
+T from_json(const std::string& json_str){
     json j = json::parse(json_str);
     T v;
     typedef mpl::range_c<unsigned, 0, boost::fusion::result_of::size<T>::value > range;

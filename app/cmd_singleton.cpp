@@ -1,6 +1,7 @@
 #include "cmd_singleton.hpp"
+#include "json.hpp"
 
-namespace asio_app{
+namespace app{
 
 cmd_singleton::~cmd_singleton(){}
 

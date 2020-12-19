@@ -1,6 +1,6 @@
 
-#ifndef ASIO_SERVICE_GLOBAL_HPP
-#define ASIO_SERVICE_GLOBAL_HPP
+#ifndef APP_SERVICE_GLOBAL_HPP
+#define APP_SERVICE_GLOBAL_HPP
 
 #define DIR "/opt/cert"
 #define KEY_FILE  DIR "/rsakey.pem"
@@ -12,4 +12,4 @@
 
 
 
-#endif //ASIO_SERVICE_GLOBAL_HPP
+#endif //APP_SERVICE_GLOBAL_HPP

@@ -1,6 +1,6 @@
 
-#ifndef ASIO_SERVICE_SEND_HPP
-#define ASIO_SERVICE_SEND_HPP
+#ifndef APP_SERVICE_SEND_HPP
+#define APP_SERVICE_SEND_HPP
 
 struct request_t{
     char * cmd;
@@ -22,4 +22,4 @@ response_t* send_message(request_t*);
 }
 #endif
 
-#endif //ASIO_SERVICE_SEND_HPP
+#endif //APP_SERVICE_SEND_HPP

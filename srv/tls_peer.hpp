@@ -19,7 +19,6 @@ typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
 using handler_t = std::function<std::pair<std::string, srv::code_te>(const std::string &, const std::string &)>;
 
-
 struct tls_peer: public  std::enable_shared_from_this<tls_peer>, boost::noncopyable
 {
 public:
@@ -147,7 +146,7 @@ protected:
 
     void do_write() {
         std::string tx, http_status;
-        tx = "HTTP/1.0 "+std::to_string(static_cast<int>(response.second))+" "+fc_light::variant(response.second).as_string()+
+        tx = "HTTP/1.0 "+std::to_string(static_cast<int>(response.second))+" "+as_string(response.second)+
              "\r\n";
         tx += response.first.length()?"Content-Length: "+std::to_string(response.first.length())+CRLF+response.first:"\r\n";
         boost::asio::async_write(socket_, boost::asio::buffer(tx),

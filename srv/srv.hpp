@@ -1,12 +1,7 @@
 
 #ifndef SRV_HPP
 #define SRV_HPP
-
-#include <fc_light/reflect/reflect.hpp>
-#include <fc_light/reflect/variant.hpp>
-#include <fc_light/variant.hpp>
-#include <fc_light/io/json.hpp>
-#include <fc_light/exception/exception.hpp>
+#include <string>
 
 namespace srv {
 enum struct code_te {
@@ -16,14 +11,16 @@ enum struct code_te {
     invalid_cmd = 404,
     server_error = 500
 };
-}
 
-FC_LIGHT_REFLECT_ENUM(srv::code_te,
-                      (unknown)
-                      (ok)
-                      (invalid_json)
-                      (invalid_cmd)
-                      (server_error)
-)
+auto as_string = [](code_te code){
+    switch (code) {
+        case code_te::ok: return "ok";
+        case code_te::invalid_json: return "invalid_json";
+        case code_te::invalid_cmd: return "invalid_cmd";
+        case code_te::server_error: return "server_error";
+        default: return "unknown";
+    }
+};
+}
 
 #endif //SRV_HPP

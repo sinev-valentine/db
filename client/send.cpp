@@ -5,122 +5,77 @@
 #include "cmd_singleton.hpp"
 #include <fstream>
 
-#include <fc_light/exception/exception.hpp>
-#include "sha_wrapper.hpp"
-#include <fc_light/crypto/base64.hpp>
-#include "xml_singleton.hpp"
 #include "send.hpp"
 #include <boost/program_options.hpp>
 #include <boost/fusion/sequence.hpp>
 #include <boost/fusion/include/sequence.hpp>
 #include <boost/fusion/algorithm.hpp>
 #include <boost/fusion/include/algorithm.hpp>
+#include "json.hpp"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-response_t result;
-std::string response_content;
+std::string enum_to_uri(const app::cmd_list_te cmd){
+    switch (cmd) {
+        case app::cmd_list_te::insert_: return "insert";
+        case app::cmd_list_te::update_: return "update";
+        case app::cmd_list_te::delete_: return "delete";
+        case app::cmd_list_te::get_: return "get";
+        default: return "unknown";
+    }
+}
 
-response_t* send_message(const std::string& key, const std::string& value) {
-    try{
-        std::string ip = "0.0.0.0";
-        uint32_t port = 1024;
-
-        result.params = const_cast<char*>("");
-
-        auto http_handler = [](const std::string json, int http_code) {
+void send_message(const app::cmd_list_te cmd, const std::string& key, const std::string& value,
+                  std::string& ip, int port) {
+    try {
+        auto http_handler = [](const std::string result, int http_code) {
             if (http_code != static_cast<int>(srv::code_te::ok)) {
-                response_content.assign("response error:  " +
-                            fc_light::variant(static_cast<srv::code_te >(http_code)).as_string()+ " " + json);
-                result.params = const_cast<char*>(response_content.c_str());
-                result.res = false;
-                return;
+                std::cout << result << std::endl;
             }
-            asio_app::cmd_handler<asio_app::cmd_list_te::xml_sign>::content_t response;
-            try{
-                 response = fc_light::json::from_string(json).as<asio_app::cmd_handler<asio_app::cmd_list_te::xml_sign>::content_t>();
-            }
-            catch(fc_light::bad_cast_exception& ext){
-                response_content.assign("bad cast response: "+ json);
-                result.params = const_cast<char*>(response_content.c_str());
-                result.res = false;
-                return;
-            }
-            // if OK, then verify
-            auto& xml = asio_app::xml_singleton::instance();
-            result.res = xml.verify(response.raw_signed_xml);
-            response_content.assign(response.raw_signed_xml.data(), response.raw_signed_xml.size());
-            result.params = const_cast<char*>(response_content.c_str());
         };
 
-        namespace fields
-        {
-            struct key;
-            struct value;
+        std::string uri, body;
+        app::table table(key, value);
+        app::field field(key);
+        switch (cmd) {
+            case app::cmd_list_te::insert_:
+                uri = "insert";
+                body = app::to_json(table);
+                break;
+            case app::cmd_list_te::update_:
+                uri = "update";
+                body = app::to_json(table);
+                break;
+            case app::cmd_list_te::delete_:
+                uri = "delete";
+                body = app::to_json(field);
+                break;;
+            case app::cmd_list_te::get_:
+                uri = "get";
+                body = app::to_json(field);
+                break;
+            default:
+                uri = "unknown";
         }
-
-        typedef map<fusion::pair<fields::key, std::string> , fusion::pair<fields::value, std::string> >  data;
-
-        struct Foo_s { int i; char k[100]; };
-        BOOST_FUSION_ADAPT_STRUCT( Foo_s,  (int, i)  (char, k[100]) )
-
-        struct Bar_s { int v; Foo_s w; };
-        BOOST_FUSION_ADAPT_STRUCT( Bar_s, (int, v)  (Foo_s, w) )
-
-        template <typename T2> struct Dec_s {  static void decode(T2   & f); };
-        struct AppendToTextBox {
-            template <typename T>
-            void operator()(T& t) const {
-                //decode T and t as the original code here...
-                Dec_s<T>::decode(t);
-            }
-        };
-
-        template <typename T2> void Dec_s<T2>::decode(T2 & f) {
-            for_each(f, AppendToTextBox());
-        };
-        template<> void Dec_s<int >::decode(int  & f) {};
-        template<> void Dec_s<char>::decode(char & f) {};
-
-        Bar_s f = { 2, { 3, "abcd" } };
-        Dec_s<Bar_s>::decode(f);
-
-        std::string xml(request->params);
-        std::vector<char> raw_xml(xml.begin(), xml.end());
-
-        asio_app::params_t params;
-        params.raw_xml = std::move(raw_xml);
-        auto body = fc_light::json::to_string(fc_light::variant(params));
-        auto uri = std::string (request->cmd);
-
-        std::vector<std::string> headers = { "POST "+ uri,"Host: "+ip+":"+std::to_string(port)};
-        client::handler_t handler = std::bind(http_handler, std::placeholders::_1, std::placeholders::_2 );
+        std::vector<std::string> headers = {"POST " + enum_to_uri(cmd), "Host: " + ip + ":" + std::to_string(port)};
+        client::handler_t handler = std::bind(http_handler, std::placeholders::_1, std::placeholders::_2);
         client::client::instance(ip, port, headers, body, handler);
-
-        return &result;
-
-    }catch(fc_light::exception& exc){
-        auto error_msg = asio_app::exc_handler(exc);
-        result.res = false;
-        result.params = const_cast<char*>(error_msg.c_str());
     }
     catch( const std::exception& e ) {
-        auto error_msg = fc_light::json::to_pretty_string(
-                fc_light::variant(asio_app::err_msg(0, fc_light::std_exception_code,  std::string(e.what()))));
-        result.res = false;
-        result.params = const_cast<char*>(error_msg.c_str());
+       std::cout << e.what() << std::endl;
     }
-    return &result;
 }
 
 int main(int argc, char* argv[]){
-
-    std::string ip, cmd, key, val;
+    namespace po = boost::program_options;
+    std::string ip, port;
+    int port_;
     po::options_description desc("Options");
     desc.add_options()
             ("help,h", "Show help")
-            ("ip", po::value<std::string>(&task_type), "server IP");
-            ("cmd", po::value<std::string>(&task_type), "command");
-            ("key", po::value<std::string>(&task_type), "key");
-            ("val", po::value<std::string>(&task_type), "value");
+            ("ip", po::value<std::string>(&ip), "server ip");
+            ("port", po::value<std::string>(&port), "port");
 
     po::variables_map options;
     try
@@ -131,21 +86,54 @@ int main(int argc, char* argv[]){
 
         if (options.count("help") ||
             options.count("ip") == 0 ||
-            options.count("cmd") == 0 ||
-            options.count("key") == 0 ||
+            options.count("port") == 0
+//            options.count("key") == 0
             ){
             std::cout << desc << std::endl;
             return 0;
         }
 
         struct sockaddr_in sa;
-        if (inet_pton(AF_INET, ip.c_str(), &(sa.sin_addr) == 0){
+        if (inet_pton(AF_INET, ip.c_str(), reinterpret_cast<void *>(&(sa.sin_addr) == 0))){
             std::cout << desc << std::endl;
-            return 0
+        }
+
+        port_ = std::stoi(port);
+        if (port_ < 1024 || port_ > 65535)
+            std::cout << desc << std::endl;
+
+        while(true){
+            std::cout << "введите комманду: " << std::endl;
+            std::cout << "0 - exit" << std::endl;
+            std::cout << "1 - insert" << std::endl;
+            std::cout << "2 - update" << std::endl;
+            std::cout << "3 - delete" << std::endl;
+            std::cout << "4 - get" << std::endl;
+            std::string str;
+            std::getline(std::cin, str);
+            std::istringstream ss(str);
+            int cmd;
+            ss>>cmd;
+
+            std::string key, value;
+            switch (static_cast<app::cmd_list_te>(cmd)) {
+                case app::cmd_list_te::unknown: return 0;
+                case app::cmd_list_te::insert_:
+                case app::cmd_list_te::update_: {
+                    std::cout << "value: ";
+                    std::getline(std::cin, value);
+                }
+                case app::cmd_list_te::delete_:
+                case app::cmd_list_te::get_:{
+                    std::cout << "key: ";
+                    std::getline(std::cin, key);
+                    send_message(static_cast<app::cmd_list_te>(cmd), key, value, ip, port_);
+                    break;
+                }
+            }
         }
     }
-    catch (std::exception& ex)
-    {
+    catch (std::exception& e){
         std::cout << desc << std::endl;
         return 0;
     }

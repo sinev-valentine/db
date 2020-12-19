@@ -1,10 +1,9 @@
-#ifndef ASIO_APP_SINGLETON_HPP
-#define ASIO_APP_SINGLETON_HPP
+#ifndef APP_SINGLETON_HPP
+#define APP_SINGLETON_HPP
 
 #include "srv.hpp"
 
-namespace asio_app{
-
+namespace app{
 
 struct app_singleton {
     static app_singleton& instance();
@@ -18,4 +17,4 @@ private:
 
 
 
-#endif //ASIO_APP_SINGLETON_HPP
+#endif //APP_SINGLETON_HPP
