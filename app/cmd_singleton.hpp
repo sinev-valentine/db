@@ -13,12 +13,10 @@ namespace app {
 struct table {
     std::string key;
     std::string value;
-    table(const std::string& k, const std::string& v): key(k), value(v){}
 };
 
 struct field {
     std::string key;
-    field(const std::string& k): key(k){};
 };
 }
 BOOST_FUSION_ADAPT_STRUCT( app::table, key, value);
@@ -59,6 +57,7 @@ struct cmd_handler<cmd_list_te::insert_> : cmd_handler_base {
         try{
             auto rec = from_json<table>(json);
             std::cout << rec.key <<", " << rec.value << std::endl;
+            return std::make_pair("ok", srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -73,6 +72,7 @@ struct cmd_handler<cmd_list_te::update_> : cmd_handler_base {
         try{
             auto rec = from_json<table>(json);
             std::cout << rec.key <<", " << rec.value << std::endl;
+            return std::make_pair("ok", srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -86,6 +86,7 @@ struct cmd_handler<cmd_list_te::delete_> : cmd_handler_base {
         try{
             auto param = from_json<field>(json);
             std::cout << param.key << std::endl;
+            return std::make_pair("ok", srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -99,6 +100,7 @@ struct cmd_handler<cmd_list_te::get_> : cmd_handler_base {
         try{
             auto param = from_json<field>(json);
             std::cout << param.key << std::endl;
+            return std::make_pair("ok", srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);

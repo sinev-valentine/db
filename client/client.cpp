@@ -157,7 +157,8 @@ boost::shared_ptr<client> client::instance(const std::string& ip, int port, std:
     boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv13);
     boost::asio::io_context io_context;
     std::ifstream file(CLIENT_HTTPS_CERT);
-    FC_LIGHT_ASSERT(file, "error open cert file " CLIENT_HTTPS_CERT);
+    if(!file)
+        throw std::runtime_error( "error open cert file " CLIENT_HTTPS_CERT);
     ssl_context.load_verify_file(CLIENT_HTTPS_CERT);
 
     auto instance = boost::shared_ptr<client>(new client(ip, port, head, request_json, h, io_context, ssl_context));

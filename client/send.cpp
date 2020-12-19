@@ -3,18 +3,10 @@
 #include "client.hpp"
 #include "srv.hpp"
 #include "cmd_singleton.hpp"
-#include <fstream>
-
-#include "send.hpp"
 #include <boost/program_options.hpp>
-#include <boost/fusion/sequence.hpp>
-#include <boost/fusion/include/sequence.hpp>
-#include <boost/fusion/algorithm.hpp>
-#include <boost/fusion/include/algorithm.hpp>
 #include "json.hpp"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+
+std::atomic<int> count;
 
 std::string enum_to_uri(const app::cmd_list_te cmd){
     switch (cmd) {
@@ -33,11 +25,15 @@ void send_message(const app::cmd_list_te cmd, const std::string& key, const std:
             if (http_code != static_cast<int>(srv::code_te::ok)) {
                 std::cout << result << std::endl;
             }
+            count++;
         };
 
         std::string uri, body;
-        app::table table(key, value);
-        app::field field(key);
+        app::table table;
+        table.key = key;
+        table.value = value;
+        app::field field;
+        field.key = key;
         switch (cmd) {
             case app::cmd_list_te::insert_:
                 uri = "insert";
@@ -73,9 +69,9 @@ int main(int argc, char* argv[]){
     int port_;
     po::options_description desc("Options");
     desc.add_options()
-            ("help,h", "Show help")
-            ("ip", po::value<std::string>(&ip), "server ip");
-            ("port", po::value<std::string>(&port), "port");
+            ("help,h", "show help")
+            ("ip,i", po::value<std::string>(&ip), "server ip")
+            ("port,p", po::value<std::string>(&port), "server port");
 
     po::variables_map options;
     try
@@ -87,20 +83,18 @@ int main(int argc, char* argv[]){
         if (options.count("help") ||
             options.count("ip") == 0 ||
             options.count("port") == 0
-//            options.count("key") == 0
             ){
             std::cout << desc << std::endl;
             return 0;
         }
 
-        struct sockaddr_in sa;
-        if (inet_pton(AF_INET, ip.c_str(), reinterpret_cast<void *>(&(sa.sin_addr) == 0))){
-            std::cout << desc << std::endl;
-        }
-
+        boost::system::error_code ec;
+        boost::asio::ip::address::from_string( ip, ec );
         port_ = std::stoi(port);
-        if (port_ < 1024 || port_ > 65535)
+        if (ec || port_ < 1024 || port_ > 65535) {
             std::cout << desc << std::endl;
+            return 0;
+        }
 
         while(true){
             std::cout << "введите комманду: " << std::endl;
@@ -120,17 +114,24 @@ int main(int argc, char* argv[]){
                 case app::cmd_list_te::unknown: return 0;
                 case app::cmd_list_te::insert_:
                 case app::cmd_list_te::update_: {
+                    std::cout << "key: ";
+                    std::getline(std::cin, key);
                     std::cout << "value: ";
                     std::getline(std::cin, value);
+                    break;
                 }
                 case app::cmd_list_te::delete_:
                 case app::cmd_list_te::get_:{
                     std::cout << "key: ";
                     std::getline(std::cin, key);
-                    send_message(static_cast<app::cmd_list_te>(cmd), key, value, ip, port_);
                     break;
                 }
+                default: continue;
             }
+//            int cnt = count;
+            send_message(static_cast<app::cmd_list_te>(cmd), key, value, ip, port_);
+//            if (cnt == count)
+//                return 0;
         }
     }
     catch (std::exception& e){
