@@ -16,14 +16,12 @@ db_singleton &db_singleton::instance() {
 }
 
 op_status db_singleton::insert(db_record& rec){
-    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
-    index_by_key& idx = get<0>(*pbc);
-    index_by_key::iterator it;
-
     bip::scoped_lock<bip::named_mutex> lock(mutex);
-    it = idx.find(rec.key);
-    if (it != idx.end())
+    auto& ind = get<0>(*pbc);
+    auto it = ind.find(rec.key);
+    if (it != ind.end())
         return op_status::key_exist;
+    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
     b.key = rec.key;
     b.value = rec.value;
     pbc->insert(b);
@@ -32,18 +30,38 @@ op_status db_singleton::insert(db_record& rec){
 
 
 op_status db_singleton::update(db_record& rec){
-    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
-    index_by_key& idx = get<0>(*pbc);
-    index_by_key::iterator it;
-
     bip::scoped_lock<bip::named_mutex> lock(mutex);
-    it=idx.find(rec.key);
-    if(it == idx.end())
+    auto& ind = get<0>(*pbc);
+    auto it = ind.find(rec.key);
+    if(it == ind.end())
         return op_status::key_absent;
     if(it->value == rec.value)
         return op_status::value_match;
-    b=*it;
-    idx.modify(it, [&rec](auto& p){p.value = rec.value;});
+    ind.modify(it, [&rec](auto& p){p.value = rec.value;});
+    return op_status::ok;
+}
+
+op_status db_singleton::delete_(std::string& key ){
+    bip::scoped_lock<bip::named_mutex> lock(mutex);
+    auto& ind = get<0>(*pbc);
+    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
+    b.key = key.c_str();
+    auto it = ind.find(b.key);
+    if(it == ind.end())
+        return op_status::key_absent;
+    ind.erase(it);
+    return op_status::ok;
+}
+
+op_status db_singleton::get_(std::string& key, std::string& value) {
+    bip::scoped_lock<bip::named_mutex> lock(mutex);
+    auto& ind = get<0>(*pbc);
+    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
+    b.key = key.c_str();
+    auto it = ind.find(b.key);
+    if(it == ind.end())
+        return op_status::key_absent;
+    value = it->value.c_str();
     return op_status::ok;
 }
 

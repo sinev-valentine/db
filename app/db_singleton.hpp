@@ -63,8 +63,8 @@ public:
     static db_singleton& instance();
     op_status insert(db_record&);
     op_status update(db_record&);
-    op_status delete_(db_record&);
-    op_status get_(db_record&);
+    op_status delete_(std::string&);
+    op_status get_(std::string&, std::string&);
 
 private:
     db_singleton();
