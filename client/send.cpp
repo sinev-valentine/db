@@ -22,9 +22,10 @@ void send_message(const app::cmd_list_te cmd, const std::string& key, const std:
                   std::string& ip, int port) {
     try {
         auto http_handler = [](const std::string result, int http_code) {
-            if (http_code != static_cast<int>(srv::code_te::ok)) {
-                std::cout << result << std::endl;
-            }
+            std::cout<< " response: " << result <<"  HTTP code: " << http_code<< std::endl;
+//            if (http_code != static_cast<int>(srv::code_te::ok)) {
+//                std::cout << result << std::endl;
+//            }
             count++;
         };
 
@@ -95,18 +96,19 @@ int main(int argc, char* argv[]){
             std::cout << desc << std::endl;
             return 0;
         }
-
+        std::cout << " commands: " << std::endl;
+        std::cout << "0 - exit" << std::endl;
+        std::cout << "1 - insert" << std::endl;
+        std::cout << "2 - update" << std::endl;
+        std::cout << "3 - delete" << std::endl;
+        std::cout << "4 - get" << std::endl;
         while(true){
-            std::cout << "введите комманду: " << std::endl;
-            std::cout << "0 - exit" << std::endl;
-            std::cout << "1 - insert" << std::endl;
-            std::cout << "2 - update" << std::endl;
-            std::cout << "3 - delete" << std::endl;
-            std::cout << "4 - get" << std::endl;
+            std::cout <<  std::endl<< " enter the command: " ;
+
             std::string str;
             std::getline(std::cin, str);
             std::istringstream ss(str);
-            int cmd;
+            int cmd = static_cast<int>(app::cmd_list_te::last);
             ss>>cmd;
 
             std::string key, value;
@@ -114,15 +116,15 @@ int main(int argc, char* argv[]){
                 case app::cmd_list_te::unknown: return 0;
                 case app::cmd_list_te::insert_:
                 case app::cmd_list_te::update_: {
-                    std::cout << "key: ";
+                    std::cout << " key: ";
                     std::getline(std::cin, key);
-                    std::cout << "value: ";
+                    std::cout << " value: ";
                     std::getline(std::cin, value);
                     break;
                 }
                 case app::cmd_list_te::delete_:
                 case app::cmd_list_te::get_:{
-                    std::cout << "key: ";
+                    std::cout << " key: ";
                     std::getline(std::cin, key);
                     break;
                 }
