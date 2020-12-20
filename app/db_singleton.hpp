@@ -15,9 +15,22 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include "json.hpp"
 
+namespace app {
+    struct table {
+        std::string key;
+        std::string value;
+    };
 
-namespace db_app{
+    struct field {
+        std::string key;
+    };
+}
+
+BOOST_FUSION_ADAPT_STRUCT( app::table, key, value);
+BOOST_FUSION_ADAPT_STRUCT( app::field, key);
+namespace app{
 
 using boost::multi_index_container;
 using namespace boost::multi_index;
@@ -61,10 +74,10 @@ struct db_singleton{
 
 public:
     static db_singleton& instance();
-    op_status insert(db_record&);
-    op_status update(db_record&);
-    op_status delete_(std::string&);
-    op_status get_(std::string&, std::string&);
+    op_status insert(table&);
+    op_status update(table&);
+    op_status delete_(field&);
+    op_status get_(field&, field&);
 
 private:
     db_singleton();

@@ -1,6 +1,6 @@
 #include "db_singleton.hpp"
 
-namespace db_app {
+namespace app {
 
 db_singleton::db_singleton():
 seg(bip::open_or_create,"./data.db", 1048576),
@@ -15,37 +15,43 @@ db_singleton &db_singleton::instance() {
     return instance;
 }
 
-op_status db_singleton::insert(db_record& rec){
+op_status db_singleton::insert(table& rec){
     bip::scoped_lock<bip::named_mutex> lock(mutex);
+    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
+    b.key = rec.key.c_str();
+    b.value = rec.value.c_str();
+
     auto& ind = get<0>(*pbc);
-    auto it = ind.find(rec.key);
+    auto it = ind.find(b.key);
     if (it != ind.end())
         return op_status::key_exist;
-    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
-    b.key = rec.key;
-    b.value = rec.value;
     pbc->insert(b);
     return op_status::ok;
 }
 
 
-op_status db_singleton::update(db_record& rec){
+op_status db_singleton::update(table& rec){
     bip::scoped_lock<bip::named_mutex> lock(mutex);
+    db_record b(shared_string::allocator_type(seg.get_segment_manager()));
+    b.key = rec.key.c_str();
+    b.value = rec.value.c_str();
+
     auto& ind = get<0>(*pbc);
-    auto it = ind.find(rec.key);
+    auto it = ind.find(b.key);
     if(it == ind.end())
         return op_status::key_absent;
-    if(it->value == rec.value)
+    if(it->value == b.value)
         return op_status::value_match;
-    ind.modify(it, [&rec](auto& p){p.value = rec.value;});
+    ind.modify(it, [&b](auto& p){p.value = b.value;});
     return op_status::ok;
 }
 
-op_status db_singleton::delete_(std::string& key ){
+op_status db_singleton::delete_(field& param ){
     bip::scoped_lock<bip::named_mutex> lock(mutex);
-    auto& ind = get<0>(*pbc);
     db_record b(shared_string::allocator_type(seg.get_segment_manager()));
-    b.key = key.c_str();
+    b.key = param.key.c_str();
+
+    auto& ind = get<0>(*pbc);
     auto it = ind.find(b.key);
     if(it == ind.end())
         return op_status::key_absent;
@@ -53,15 +59,16 @@ op_status db_singleton::delete_(std::string& key ){
     return op_status::ok;
 }
 
-op_status db_singleton::get_(std::string& key, std::string& value) {
+op_status db_singleton::get_(field& param, field& res) {
     bip::scoped_lock<bip::named_mutex> lock(mutex);
-    auto& ind = get<0>(*pbc);
     db_record b(shared_string::allocator_type(seg.get_segment_manager()));
-    b.key = key.c_str();
+    b.key = param.key.c_str();
+
+    auto& ind = get<0>(*pbc);
     auto it = ind.find(b.key);
     if(it == ind.end())
         return op_status::key_absent;
-    value = it->value.c_str();
+    res.key = it->value.c_str();
     return op_status::ok;
 }
 
