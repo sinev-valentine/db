@@ -3,6 +3,7 @@
 #include <functional>
 #include "app_singleton.hpp"
 #include <boost/program_options.hpp>
+#include "db_singleton.hpp"
 
 
 int main(int argc, char* argv[]) {
@@ -50,7 +51,8 @@ int main(int argc, char* argv[]) {
                                            &app,
                                            std::placeholders::_1,
                                            std::placeholders::_2);
-        srv::timer_handler_t statictic_logger = [](){std::cout << " statistic log" << std::endl;};
+        auto& db = app::db_singleton::instance();
+        srv::timer_handler_t statictic_logger = std::bind(&app::db_singleton::statistic_log, &db);
         auto server = std::make_shared<srv::server>(ip, port, handler, statictic_logger);
         server->run();
     }

@@ -6,7 +6,8 @@ db_singleton::db_singleton():
 seg(bip::open_or_create,"./data.db", 1048576),
 mutex(bip::open_or_create,"7FD6D7E8-320B-11DC-82CF-F0B655D89593"),
 pbc(seg.find_or_construct<db_container>("db container")(db_container::ctor_args_list(),
-            db_container::allocator_type(seg.get_segment_manager()))){}
+            db_container::allocator_type(seg.get_segment_manager()))),
+            insert_cnt(0), update_cnt(0), delete_cnt(0), get_cnt(0){}
 
 db_singleton::~db_singleton() {};
 
@@ -70,6 +71,11 @@ op_status db_singleton::get_(field& param, field& res) {
         return op_status::key_absent;
     res.key = it->value.c_str();
     return op_status::ok;
+}
+
+void db_singleton::statistic_log() {
+    std::cerr << "total: " << 10 <<", inserted: "<< insert_cnt<<", updated: "<<
+    update_cnt << ", deleted: " << delete_cnt <<", getted: " << get_cnt << std::endl;
 }
 
 }

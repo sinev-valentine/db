@@ -78,6 +78,7 @@ public:
     op_status update(table&);
     op_status delete_(field&);
     op_status get_(field&, field&);
+    void statistic_log();
 
 private:
     db_singleton();
@@ -86,6 +87,11 @@ private:
     bip::managed_mapped_file seg;
     bip::named_mutex mutex;
     db_container* pbc;
+
+    uint32_t insert_cnt;
+    uint32_t update_cnt;
+    uint32_t delete_cnt;
+    uint32_t get_cnt;
 };
 
 }
