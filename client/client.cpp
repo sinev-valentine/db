@@ -6,33 +6,21 @@
 #include <boost/asio/read_until.hpp>
 #include <fstream>
 #include "srv.hpp"
+#define DEFAULT_CONTEXT
 
 namespace client {
 
 using handler_t = std::function<void(std::string&, int code)>;
 
 
-client::client(const std::string& ip, int port, std::vector<std::string>& head, std::string request_json, handler_t h,
-               boost::asio::io_context& io_context, boost::asio::ssl::context& ssl_context):
-            resolve_result(boost::asio::ip::tcp::resolver(io_context).resolve(ip, std::to_string(port))),
-            started(true),
-            headers(head),
-            m_request_content(request_json),
-            handler(h),
-            m_response_content(""),
-            http_code(static_cast<int>(srv::code_te::unknown)),
-            ssl_stream(io_context, ssl_context)
-{
-}
-
-bool client::verify_certificate(bool preverified,
-                            boost::asio::ssl::verify_context& ctx)
-{
-    return true;
-}
+    client::client(const std::string& ip, int port, std::vector<std::string>& head, std::string request_json, handler_t h):
+            endpoint(boost::asio::ip::address::from_string(ip), port),
+            started(true), headers(head), m_request_content(request_json), io_context(DEFAULT_CONTEXT), socket(io_context),
+            handler(h), m_response_content(""), http_code(static_cast<int>(srv::code_te::unknown)){
+    }
 
 client::~client(){
-    ssl_stream.lowest_layer().close();
+    socket.close();
 }
 
 void client::on_read_content(const boost::system::error_code& ec, std::size_t bytes_transferred){
@@ -79,7 +67,7 @@ void client::on_read(const boost::system::error_code& ec, std::size_t bytes_tran
         }
 
         if (m_response_content.length() < content_length){
-            boost::asio::async_read(ssl_stream, rx, boost::asio::transfer_exactly(content_length-m_response_content.length()),
+            boost::asio::async_read(socket, rx, boost::asio::transfer_exactly(content_length-m_response_content.length()),
                                           boost::bind(&client::on_read_content, shared_from_this(), _1, _2));
         }
         else{
@@ -95,7 +83,7 @@ void client::on_read(const boost::system::error_code& ec, std::size_t bytes_tran
 
 void client::do_read(){
 
-    boost::asio::async_read_until(ssl_stream, rx, CRLF,
+    boost::asio::async_read_until(socket, rx, CRLF,
             boost::bind(&client::on_read, shared_from_this(), _1, _2));
 }
 
@@ -109,7 +97,7 @@ void client::do_write(){
     }
     tx += "\r\n"+m_request_content;
 
-    boost::asio::async_write(ssl_stream, boost::asio::buffer(tx),
+    boost::asio::async_write(socket, boost::asio::buffer(tx),
                             boost::bind(&client::on_write, shared_from_this(), _1, _2));
 }
 
@@ -118,35 +106,15 @@ void client::on_write(const boost::system::error_code& error, size_t bytes){
 }
 
 void client::do_connect(){
-    ssl_stream.set_verify_mode(boost::asio::ssl::verify_peer);  // no CA
-    ssl_stream.set_verify_callback( boost::bind(&client::verify_certificate, shared_from_this(), _1, _2));
-
-    boost::asio::async_connect(ssl_stream.lowest_layer(), resolve_result,
-            boost::bind(&client::on_connect, shared_from_this(), _1, _2));
+    socket.async_connect(endpoint, boost::bind(&client::on_connect, shared_from_this(), _1));
+    io_context.run();
 }
 
-void client::on_connect(const boost::system::error_code& error, const tcp::endpoint& ep){
+void client::on_connect(const boost::system::error_code& error){
     if (!error){
-        do_handshake();
+        do_write();
     } else{
         std::cout << "https connection failed" << std::endl;
-        close();
-    }
-}
-
-void client::do_handshake(){
-    ssl_stream.async_handshake(boost::asio::ssl::stream_base::client, boost::bind(&client::on_handshake,
-            shared_from_this(), _1));
-}
-
-void client::on_handshake(const boost::system::error_code& error){
-    if (!error)
-    {
-        do_write();
-    }
-    else
-    {
-        std::cout << "Handshake failed: " << error.message() << "\n";
         close();
     }
 }
@@ -154,23 +122,15 @@ void client::on_handshake(const boost::system::error_code& error){
 boost::shared_ptr<client> client::instance(const std::string& ip, int port, std::vector<std::string>& head,
         std::string request_json, handler_t h){
 
-    boost::asio::ssl::context ssl_context(boost::asio::ssl::context::tlsv13);
-    boost::asio::io_context io_context;
-    std::ifstream file(CLIENT_HTTPS_CERT);
-    if(!file)
-        throw std::runtime_error( "error open cert file " CLIENT_HTTPS_CERT);
-    ssl_context.load_verify_file(CLIENT_HTTPS_CERT);
-
-    auto instance = boost::shared_ptr<client>(new client(ip, port, head, request_json, h, io_context, ssl_context));
+    auto instance = boost::shared_ptr<client>(new client(ip, port, head, request_json, h));
     instance->do_connect();
-    io_context.run();
     return instance;
 }
 
 void client::close(){
     if(!started) return;
     started = false;
-    ssl_stream.lowest_layer().close();
+    socket.close();
 }
 
 }

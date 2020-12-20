@@ -15,7 +15,6 @@
 namespace srv {
 
 typedef boost::asio::ip::tcp::socket tcp_socket;
-typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 
 using handler_t = std::function<std::pair<std::string, srv::code_te>(const std::string &, const std::string &)>;
 
@@ -27,9 +26,8 @@ public:
 
     tls_peer(tcp_socket socket,
                tls_peer_list<tls_peer_ptr>& manager,
-               handler_t& func,
-               boost::asio::ssl::context&  ssl_context)
-            : socket_(std::move(socket), ssl_context ),
+               handler_t& func)
+            : socket_(std::move(socket)),
               tls_peer_list_(manager),
               handler(func),
               stopped_(false),
@@ -37,16 +35,8 @@ public:
               uri("")   {}
     ~tls_peer(){ socket_close();}
 
-    void on_handshake(const boost::system::error_code& error) {
-        if (!error) {
-            do_read();
-        } else {
-            socket_close();
-        }
-    }
-
     void start(){
-        do_handshake();
+        do_read();
     }
 
     void stop(){
@@ -63,14 +53,6 @@ protected:
     void socket_shutdown() {
         boost::system::error_code ignored_ec;
         socket_.lowest_layer().shutdown(tcp_socket::shutdown_both, ignored_ec);
-    }
-
-    void do_handshake() {
-        auto self(this->shared_from_this());
-        socket_.async_handshake(boost::asio::ssl::stream_base::server,
-                                boost::bind(&tls_peer::on_handshake,
-                                            this->shared_from_this(), _1)
-        );
     }
 
     void on_read_content(const boost::system::error_code& ec, std::size_t bytes_transferred){
@@ -153,7 +135,7 @@ protected:
                                  boost::bind(&tls_peer::on_write, this->shared_from_this(), _1, _2));
     }
 
-    ssl_socket socket_;
+    boost::asio::ip::tcp::socket socket_;
 
     tls_peer_list<tls_peer_ptr>& tls_peer_list_;
 

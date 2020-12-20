@@ -2,10 +2,8 @@
 #define TLS_SRV_HPP
 
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include "tls_peer.hpp"
 #include "tls_peer_list.hpp"
-#include "global.hpp"
 
 namespace srv {
 
@@ -31,7 +29,6 @@ protected:
     tls_peer_list<tls_peer::tls_peer_ptr> tls_peer_list_;
 
     handler_t handler;
-    boost::asio::ssl::context ssl_context;
 
 };
 

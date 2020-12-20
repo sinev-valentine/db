@@ -26,14 +26,13 @@ void server::do_accept(){
         }
         if (!ec){
             tls_peer_list_.start(std::make_shared<tls_peer>(
-                    std::move(socket), tls_peer_list_, handler, ssl_context));
+                    std::move(socket), tls_peer_list_, handler));
         }
         do_accept();
     });
 }
 
 server::server(const std::string& address, const std::string& port, handler_t func):
-            ssl_context(boost::asio::ssl::context::tlsv13),
             io_context_(1),
             signals_(io_context_),
             acceptor_(io_context_),
@@ -54,13 +53,6 @@ server::server(const std::string& address, const std::string& port, handler_t fu
     acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
     acceptor_.bind(endpoint);
     acceptor_.listen();
-
-    ssl_context.set_options(boost::asio::ssl::context::default_workarounds
-                            | boost::asio::ssl::context::no_sslv2
-                            | boost::asio::ssl::context::single_dh_use);
-    ssl_context.set_verify_mode(boost::asio::ssl::verify_none);
-    ssl_context.use_certificate_chain_file(SERVER_HTTPS_CERT);
-    ssl_context.use_private_key_file(SERVER_HTTPS_KEY, boost::asio::ssl::context::pem);
 }
 
 }

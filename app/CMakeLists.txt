@@ -6,7 +6,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 include_directories(
         ${Boost_INCLUDE_DIR}
         ${CMAKE_SOURCE_DIR}/srv
-        ${CMAKE_SOURCE_DIR}/lib
 )
 
 file(GLOB SRC ./*.cpp)
