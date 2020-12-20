@@ -7,9 +7,12 @@
 
 namespace srv {
 
-struct server : public boost::noncopyable
+using timer_handler_t = std::function<void()>;
+
+    struct server : public boost::noncopyable
 {
-    explicit server(const std::string& address, const std::string& port, handler_t handler);
+    explicit server(const std::string& address, const std::string& port, handler_t handler,
+                    timer_handler_t timer_handler);
 
     void run();
 
@@ -20,6 +23,10 @@ protected:
 
     void on_await_stop(const boost::system::error_code&, int);
 
+    void on_timer(const boost::system::error_code&);
+
+    void reset_timer();
+
     boost::asio::io_context io_context_;
 
     boost::asio::signal_set signals_;
@@ -28,8 +35,11 @@ protected:
 
     tls_peer_list<tls_peer::tls_peer_ptr> tls_peer_list_;
 
-    handler_t handler;
+    handler_t handler_;
 
+    timer_handler_t timer_handler_;
+
+    boost::asio::steady_timer timer_;
 };
 
 

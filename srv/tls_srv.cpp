@@ -5,11 +5,23 @@
 
 namespace srv {
 
+void server::reset_timer(){
+    timer_.expires_from_now( std::chrono::seconds(5));
+    timer_.async_wait(boost::bind(&server::on_timer, this, _1));
+}
+
 void server::run(){
     do_accept();
+    reset_timer();
     io_context_.run();
 }
 
+void server::on_timer(const boost::system::error_code& ec){
+    if (!ec){
+        timer_handler_();
+        reset_timer();
+    }
+}
 void server::on_await_stop(const boost::system::error_code& ec, int signo){
     acceptor_.close();
     tls_peer_list_.stop_all();
@@ -26,18 +38,20 @@ void server::do_accept(){
         }
         if (!ec){
             tls_peer_list_.start(std::make_shared<tls_peer>(
-                    std::move(socket), tls_peer_list_, handler));
+                    std::move(socket), tls_peer_list_, handler_));
         }
         do_accept();
     });
 }
 
-server::server(const std::string& address, const std::string& port, handler_t func):
+server::server(const std::string& address, const std::string& port, handler_t func, timer_handler_t timer_handler):
             io_context_(1),
             signals_(io_context_),
             acceptor_(io_context_),
             tls_peer_list_(),
-            handler(func)  {
+            handler_(func),
+            timer_handler_(timer_handler),
+            timer_(io_context_){
 
     signals_.add(SIGINT);
     signals_.add(SIGTERM);

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.14.2)
 set(Boost_USE_STATIC_LIBS ON CACHE STRING "ON or OFF" )
 set(Boost_USE_MULTITHREADED ON)
 set(BOOST_ALL_DYN_LINK OFF)
-find_package(Boost 1.70 REQUIRED COMPONENTS log chrono date_time filesystem log_setup program_options)
+find_package(Boost 1.71 REQUIRED COMPONENTS log chrono date_time filesystem log_setup program_options)
 
 
 include_directories(

@@ -50,7 +50,8 @@ int main(int argc, char* argv[]) {
                                            &app,
                                            std::placeholders::_1,
                                            std::placeholders::_2);
-        auto server = std::make_shared<srv::server>(ip, port, handler);
+        srv::timer_handler_t statictic_logger = [](){std::cout << " statistic log" << std::endl;};
+        auto server = std::make_shared<srv::server>(ip, port, handler, statictic_logger);
         server->run();
     }
     catch(const std::exception& e ) {
