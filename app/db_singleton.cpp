@@ -1,5 +1,6 @@
 #include "db_singleton.hpp"
 
+
 namespace app {
 
 db_singleton::db_singleton():
@@ -27,6 +28,7 @@ op_status db_singleton::insert(table& rec){
     if (it != ind.end())
         return op_status::key_exist;
     pbc->insert(b);
+    insert_cnt++;
     return op_status::ok;
 }
 
@@ -44,6 +46,7 @@ op_status db_singleton::update(table& rec){
     if(it->value == b.value)
         return op_status::value_match;
     ind.modify(it, [&b](auto& p){p.value = b.value;});
+    update_cnt++;
     return op_status::ok;
 }
 
@@ -57,6 +60,7 @@ op_status db_singleton::delete_(field& param ){
     if(it == ind.end())
         return op_status::key_absent;
     ind.erase(it);
+    delete_cnt++;
     return op_status::ok;
 }
 
@@ -70,12 +74,17 @@ op_status db_singleton::get_(field& param, field& res) {
     if(it == ind.end())
         return op_status::key_absent;
     res.key = it->value.c_str();
+    get_cnt++;
     return op_status::ok;
 }
 
 void db_singleton::statistic_log() {
-    std::cerr << "total: " << 10 <<", inserted: "<< insert_cnt<<", updated: "<<
+    std::cerr << "total: " << total() <<", inserted: "<< insert_cnt<<", updated: "<<
     update_cnt << ", deleted: " << delete_cnt <<", getted: " << get_cnt << std::endl;
+}
+
+uint32_t db_singleton::total(){
+    return pbc->size();
 }
 
 }

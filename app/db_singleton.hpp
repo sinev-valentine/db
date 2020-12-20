@@ -70,6 +70,16 @@ enum struct op_status {
     value_match
 };
 
+auto op_status_to_str = [](op_status s) ->std::string{
+    switch (s){
+        case op_status::ok : return "ok";
+        case op_status::key_absent : return "key_absent";
+        case op_status::key_exist : return "key_exist";
+        case op_status::value_match : return "value_match";
+    };
+    return "unknown";
+};
+
 struct db_singleton{
 
 public:
@@ -79,6 +89,7 @@ public:
     op_status delete_(field&);
     op_status get_(field&, field&);
     void statistic_log();
+    uint32_t total();
 
 private:
     db_singleton();

@@ -6,7 +6,7 @@
 namespace srv {
 
 void server::reset_timer(){
-    timer_.expires_from_now( std::chrono::seconds(5));
+    timer_.expires_from_now( std::chrono::seconds(60));
     timer_.async_wait(boost::bind(&server::on_timer, this, _1));
 }
 

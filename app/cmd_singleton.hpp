@@ -12,16 +12,21 @@
 
 
 namespace app {
-    struct response {
-        std::string result;
-        int status;
 
-        response() {}
-
-        response(const std::string &a, int b) : result(a), status(b) {}
-    };
+struct response_val {
+    std::string value;
+    std::string status;
+    response_val(const std::string& v, const std::string& s):value(v),  status(s){}
+    response_val():status(""), value(""){}
+};
+struct response {
+    std::string status;
+    response(const std::string& s): status(s){}
+    response():status(""){}
+};
 }
-BOOST_FUSION_ADAPT_STRUCT( app::response, result, status);
+BOOST_FUSION_ADAPT_STRUCT( app::response_val, value, status);
+BOOST_FUSION_ADAPT_STRUCT( app::response, status);
 
 namespace app{
 
@@ -60,10 +65,7 @@ struct cmd_handler<cmd_list_te::insert_> : cmd_handler_base {
         try{
             auto rec = from_json<table>(json);
             auto& db = db_singleton::instance();
-            auto res = db.insert(rec);
-            std::cout << rec.key <<", " << rec.value << ", " << (int)res<< std::endl;
-            auto r = response("ok", static_cast<int>(res));
-            return std::make_pair(to_json<response>(r), srv::code_te::ok);
+            return std::make_pair(to_json<response>(response(op_status_to_str(db.insert(rec)))), srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -78,10 +80,7 @@ struct cmd_handler<cmd_list_te::update_> : cmd_handler_base {
         try{
             auto rec = from_json<table>(json);
             auto& db = db_singleton::instance();
-            auto res = db.update(rec);
-            std::cout << rec.key <<", " << rec.value << ", " << (int)res<< std::endl;
-            auto r = response("ok", static_cast<int>(res));
-            return std::make_pair(to_json<response>(r), srv::code_te::ok);
+            return std::make_pair(to_json<response>(response(op_status_to_str(db.update(rec)))), srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -95,10 +94,7 @@ struct cmd_handler<cmd_list_te::delete_> : cmd_handler_base {
         try{
             auto param = from_json<field>(json);
             auto& db = db_singleton::instance();
-            auto res = db.delete_(param);
-            std::cout << param.key << ", " << (int)res<< std::endl;
-            auto r = response("ok", static_cast<int>(res));
-            return std::make_pair(to_json<response>(r), srv::code_te::ok);
+            return std::make_pair(to_json<response>(response(op_status_to_str(db.delete_(param)))), srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
@@ -114,9 +110,8 @@ struct cmd_handler<cmd_list_te::get_> : cmd_handler_base {
             auto param = from_json<field>(json);
             auto& db = db_singleton::instance();
             auto res = db.get_(param,  value);
-            std::cout << param.key << ", "<< value.key << (int)res<< std::endl;
-            auto r = response(value.key, static_cast<int>(res));
-            return std::make_pair(to_json<response>(r), srv::code_te::ok);
+            auto resp = response_val(value.key, op_status_to_str(res));
+            return std::make_pair(to_json<response_val>(resp), srv::code_te::ok);
         }
         catch(std::exception& exc){
             return std::make_pair("json parse error", srv::code_te::invalid_json);
