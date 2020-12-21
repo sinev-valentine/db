@@ -11,6 +11,7 @@ include_directories(
         ${Boost_INCLUDE_DIR}
         ${CMAKE_SOURCE_DIR}/app
         ${CMAKE_SOURCE_DIR}/srv
+        ${CMAKE_SOURCE_DIR}
 )
 
 file(GLOB SRC "*.cpp")
