@@ -64,6 +64,8 @@ struct cmd_handler<cmd_list_te::insert_> : cmd_handler_base {
     virtual api_cmd_result operator()(const std::string& json) const override{
         try{
             auto rec = from_json<table>(json);
+            if (rec.key.size() >1024  || rec.value.size() > 1024*1024)
+                return std::make_pair(to_json<response>(response(op_status_to_str(op_status::exceeding_size))), srv::code_te::ok);
             auto& db = db_singleton::instance();
             return std::make_pair(to_json<response>(response(op_status_to_str(db.insert(rec)))), srv::code_te::ok);
         }
@@ -79,6 +81,8 @@ struct cmd_handler<cmd_list_te::update_> : cmd_handler_base {
     virtual api_cmd_result operator()(const std::string& json) const override{
         try{
             auto rec = from_json<table>(json);
+            if (rec.key.size() >1024  || rec.value.size() > 1024*1024)
+                return std::make_pair(to_json<response>(response(op_status_to_str(op_status::exceeding_size))), srv::code_te::ok);
             auto& db = db_singleton::instance();
             return std::make_pair(to_json<response>(response(op_status_to_str(db.update(rec)))), srv::code_te::ok);
         }

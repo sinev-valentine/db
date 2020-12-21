@@ -67,7 +67,8 @@ enum struct op_status {
     ok = 0,
     key_absent,
     key_exist,
-    value_match
+    value_match,
+    exceeding_size
 };
 
 auto op_status_to_str = [](op_status s) ->std::string{
@@ -76,6 +77,7 @@ auto op_status_to_str = [](op_status s) ->std::string{
         case op_status::key_absent : return "key_absent";
         case op_status::key_exist : return "key_exist";
         case op_status::value_match : return "value_match";
+        case op_status::exceeding_size : return "exceeding_size";
     };
     return "unknown";
 };

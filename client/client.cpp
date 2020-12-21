@@ -4,7 +4,6 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio/read_until.hpp>
-#include <fstream>
 #include "srv.hpp"
 #define DEFAULT_CONTEXT
 

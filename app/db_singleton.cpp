@@ -4,7 +4,7 @@
 namespace app {
 
 db_singleton::db_singleton():
-seg(bip::open_or_create,"./data.db", 1048576),
+seg(bip::open_or_create,"./data.db", 1048576*10),
 mutex(bip::open_or_create,"7FD6D7E8-320B-11DC-82CF-F0B655D89593"),
 pbc(seg.find_or_construct<db_container>("db container")(db_container::ctor_args_list(),
             db_container::allocator_type(seg.get_segment_manager()))),

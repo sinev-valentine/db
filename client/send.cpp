@@ -6,8 +6,6 @@
 #include <boost/program_options.hpp>
 #include "json.hpp"
 
-std::atomic<int> count;
-
 std::string enum_to_uri(const app::cmd_list_te cmd){
     switch (cmd) {
         case app::cmd_list_te::insert_: return "insert";
@@ -23,13 +21,9 @@ void send_message(const app::cmd_list_te cmd, const std::string& key, const std:
     try {
         auto http_handler = [](const std::string result, int http_code) {
             std::cout<< " response: " << result <<"  HTTP code: " << http_code<< std::endl;
-//            if (http_code != static_cast<int>(srv::code_te::ok)) {
-//                std::cout << result << std::endl;
-//            }
-            count++;
         };
 
-        std::string uri, body;
+        std::string body;
         app::table table;
         table.key = key;
         table.value = value;
@@ -37,23 +31,19 @@ void send_message(const app::cmd_list_te cmd, const std::string& key, const std:
         field.key = key;
         switch (cmd) {
             case app::cmd_list_te::insert_:
-                uri = "insert";
                 body = app::to_json(table);
                 break;
             case app::cmd_list_te::update_:
-                uri = "update";
                 body = app::to_json(table);
                 break;
             case app::cmd_list_te::delete_:
-                uri = "delete";
                 body = app::to_json(field);
                 break;;
             case app::cmd_list_te::get_:
-                uri = "get";
                 body = app::to_json(field);
                 break;
             default:
-                uri = "unknown";
+                return;
         }
         std::vector<std::string> headers = {"POST " + enum_to_uri(cmd), "Host: " + ip + ":" + std::to_string(port)};
         client::handler_t handler = std::bind(http_handler, std::placeholders::_1, std::placeholders::_2);
@@ -130,10 +120,7 @@ int main(int argc, char* argv[]){
                 }
                 default: continue;
             }
-//            int cnt = count;
             send_message(static_cast<app::cmd_list_te>(cmd), key, value, ip, port_);
-//            if (cnt == count)
-//                return 0;
         }
     }
     catch (std::exception& e){
